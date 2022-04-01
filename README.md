@@ -12,4 +12,4 @@ API_KEY="your_steam_api_key_here"
 IDS="comma_separated,list_of,vanity_urls"
 ```
 4. Run npm start
-5. Your results are in output.txt
+5. Your results are in output.txt and unfiltered.txt.  If you get rate limited, unfiltered.txt will still be generated :)
