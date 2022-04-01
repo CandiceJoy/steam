@@ -1,5 +1,6 @@
 import * as fs         from "fs";
 import {createRequire} from "module";
+import chalk           from "chalk";
 
 const require = createRequire(import.meta.url);
 
@@ -14,7 +15,7 @@ const idString = process.env.IDS;
 const steam = new SteamAPI(apiKey);
 const file = "output.txt";
 const file2 = "unfiltered.txt";
-const names = idString.split(",");
+const names = idString.split(",").map((val)=>val.trim());
 const delay = 100;
 
 if(fs.existsSync(file))
@@ -24,11 +25,11 @@ if(fs.existsSync(file))
 	fs.appendFileSync(file, "<Indicates unknown if multiplayer or not>\n\n");
 }
 
-if( fs.existsSync( file2 ) )
+if(fs.existsSync(file2))
 {
 	fs.rmSync(file2);
-	fs.appendFileSync(file2, "Games in common for: " + idString + "\n" );
-	fs.appendFileSync( file2, "Note: This is an unfiltered list.\n\n" );
+	fs.appendFileSync(file2, "Games in common for: " + idString + "\n");
+	fs.appendFileSync(file2, "Note: This is an unfiltered list.\n\n");
 }
 
 let commonGames = [];
@@ -39,7 +40,7 @@ for(const i in names)
 	const url = names[i];
 	let id;
 
-	if( url.match( /^\d+$/ ) )
+	if(url.match(/^\d+$/))
 	{
 		id = url;
 	}
@@ -73,10 +74,10 @@ commonGames = commonGames.sort((g1, g2) =>
 	                               }
                                });
 
-for( const i in commonGames )
+for(const i in commonGames)
 {
 	const game = commonGames[i];
-	fs.appendFileSync( file2, game.name + "\n" );
+	fs.appendFileSync(file2, game.name + "\n");
 }
 
 for(const i in commonGames)
@@ -124,55 +125,54 @@ function keepElementsPresentInBoth(arr1, arr2)
 async function getIdForUser(vanityUrl)
 {
 	await sleep();
-	console.log("getIdForUser " + vanityUrl);
+	//console.log("getIdForUser " + vanityUrl);
 	const url = "http://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?key=" + apiKey + "&vanityurl=" +
 	            vanityUrl;
 	const result = await fetch(url);
 	const json = await result.json();
 	const id = json.response.steamid;
 
-	console.log("\tReturn " + id);
+	//console.log("\tReturn " + id);
 	return id;
 }
 
 async function getGamesForUser(userId, name)
 {
 	await sleep();
-	console.log("getGamesForUser " + userId + ", " + name);
+	//console.log("getGamesForUser " + userId + ", " + name);
 	let games;
 
 	try
 	{
 		games = await steam.getUserOwnedGames(userId);
 	}
-	catch( err )
+	catch(err)
 	{
-		console.log( "Error: " + err );
-		process.exit(1);
+		console.log(chalk.red("Error: " + name + "'s profile is not public or the name is incorrect"));
+		return null;
 	}
 
 	if(!games)
 	{
-		console.log("Cannot retrieve games for " + name);
+		console.log(chalk.red("Cannot retrieve games for " + name));
 		return null;
 	}
 
-	console.log("\tReturn " + games.length);
-
+	console.log(chalk.green(name + " has " + games.length + " games"));
 	return games;
 }
 
 async function getGameDetails(appId)
 {
 	await sleep();
-	console.log("getGameDetails " + appId);
+	//console.log("getGameDetails " + appId);
 	const url = "https://store.steampowered.com/api/appdetails?appids=" + appId;
 	const result = await fetch(url);
 
 	if(!result)
 	{
-		console.log("\tresult null");
-		console.log("\t" + url);
+		console.log(chalk.yellow(appId + " getGameDetails result null"));
+		console.log(chalk.yellow("\t" + url));
 		return null;
 	}
 
@@ -185,21 +185,21 @@ async function getGameDetails(appId)
 	}
 	catch(err)
 	{
-		console.log("\tError: " + err.message);
+		console.log(chalk.red(appId + " Error: " + err.message));
 		return null;
 	}
 
 	if(JSON.stringify(result) === "{\"size\":0}")
 	{
-		console.log("\tRate limit; sleeping for a minute");
+		console.log(chalk.yellow(appId + " Rate limit; sleeping for a minute"));
 		await sleep(60 * 1000);
 		return await getGameDetails(appId);
 	}
 
 	if(!json)
 	{
-		console.log("\tjson null");
-		console.log("\t" + JSON.stringify(result));
+		console.log(chalk.yellow(appId + " json null"));
+		console.log(chalk.yellow("\t" + JSON.stringify(result)));
 		return null;
 	}
 
@@ -207,14 +207,14 @@ async function getGameDetails(appId)
 
 	if(!gameObj)
 	{
-		console.log("\tgameObj null");
-		console.log("\t" + JSON.stringify(json));
+		console.log(chalk.yellow(appId + " gameObj null"));
+		console.log(chalk.yellow("\t" + JSON.stringify(json)));
 		return null;
 	}
 
 	if(gameObj.success === false)
 	{
-		console.log("\tNot found");
+		console.log(chalk.cyan(appId + " Not found"));
 		return null;
 	}
 
@@ -222,16 +222,16 @@ async function getGameDetails(appId)
 
 	if(!gameData)
 	{
-		console.log("\tgameData null");
-		console.log("\t" + JSON.stringify(gameObj));
+		console.log(chalk.yellow(appId + " gameData null"));
+		console.log(chalk.yellow("\t" + JSON.stringify(gameObj)));
 		return null;
 	}
 
-	console.log("\tFound");
+	//console.log("Found");
 	return gameData;
 }
 
-function sleep(amt=delay)
+function sleep(amt = delay)
 {
 	return new Promise(resolve => setTimeout(resolve, amt));
 }
